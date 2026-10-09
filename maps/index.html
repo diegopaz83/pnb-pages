@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Colombia 3D Intelligence Map</title>
+    <style>
+:root {
+  color-scheme: dark;
+  --bg: #09110f;
+  --ink: #f6f3e8;
+  --muted: #bec8bd;
+  --panel: rgba(9, 18, 16, 0.84);
+  --line: rgba(226, 234, 220, 0.22);
+  --accent: #87f2c4;
+  --gold: #d9b95f;
+  --danger: #e76858;
+  --shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+.experience-shell,
+.stage {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 22%, #1a2d28 0, #09110f 44%, #030605 100%);
+  color: var(--ink);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stage {
+  position: relative;
+  height: 100dvh;
+  isolation: isolate;
+}
+
+#scene,
+.vignette,
+.labels-layer {
+  position: absolute;
+  inset: 0;
+}
+
+#scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.vignette {
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(3, 6, 5, 0.58), transparent 24%, rgba(3, 6, 5, 0.72)),
+    radial-gradient(circle at 50% 44%, transparent 42%, rgba(0, 0, 0, 0.36) 100%);
+  z-index: 1;
+}
+
+.labels-layer {
+  pointer-events: none;
+  z-index: 4;
+}
+
+.kpi-label {
+  position: absolute;
+  min-width: 104px;
+  transform: translate(-50%, -100%);
+  padding: 10px 12px;
+  border: 1px solid rgba(135, 242, 196, 0.34);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(11, 28, 24, 0.9), rgba(5, 13, 12, 0.76));
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.34), 0 0 34px rgba(135, 242, 196, 0.1);
+  backdrop-filter: blur(16px);
+  color: var(--ink);
+}
+
+.kpi-label::before,
+.kpi-label::after {
+  position: absolute;
+  left: 50%;
+  content: "";
+  transform: translateX(-50%);
+}
+
+.kpi-label::before {
+  bottom: -46px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(246, 243, 232, 0.86);
+  border-radius: 50%;
+  background: #87f2c4;
+  box-shadow: 0 0 24px rgba(135, 242, 196, 0.66);
+}
+
+.kpi-label::after {
+  bottom: -38px;
+  width: 1px;
+  height: 38px;
+  background: linear-gradient(180deg, rgba(246, 243, 232, 0.76), rgba(135, 242, 196, 0.22));
+}
+
+.kpi-label span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
+.kpi-label strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 1.18rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.topbar,
+.mode-panel,
+.insight-card,
+.legend {
+  position: absolute;
+  z-index: 3;
+}
+
+.topbar {
+  top: max(14px, env(safe-area-inset-top));
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+h1 {
+  max-width: 9ch;
+  margin: 0;
+  font-size: clamp(1.9rem, 8vw, 3.7rem);
+  line-height: 0.92;
+  letter-spacing: 0;
+}
+
+.topbar p {
+  max-width: 30ch;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.icon-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(8, 18, 17, 0.68);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.icon-button svg,
+.search-box svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.mode-panel {
+  top: max(132px, 18dvh);
+  left: 12px;
+  right: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.segmented,
+.search-box,
+.insight-card {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.segmented button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.segmented button.active {
+  background: rgba(135, 242, 196, 0.14);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px rgba(135, 242, 196, 0.28);
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--muted);
+}
+
+.text-button {
+  min-width: 72px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(135, 242, 196, 0.12);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.text-button:active {
+  transform: translateY(1px);
+}
+
+.search-box input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+}
+
+.search-box input::placeholder {
+  color: rgba(174, 185, 172, 0.78);
+}
+
+.insight-card {
+  left: 12px;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  padding: 12px;
+  border-radius: 14px 14px 0 0;
+  max-height: 34dvh;
+  overflow: hidden;
+}
+
+.selected-meta span,
+.metric-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.selected-meta strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 1.22rem;
+}
+
+.hero-kpi {
+  position: relative;
+  margin-top: 10px;
+  overflow: hidden;
+  padding: 13px;
+  border: 1px solid rgba(135, 242, 196, 0.22);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 82% 12%, rgba(240, 200, 106, 0.22), transparent 34%),
+    linear-gradient(135deg, rgba(135, 242, 196, 0.2), rgba(217, 185, 95, 0.1) 52%, rgba(231, 104, 88, 0.08));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 18px 44px rgba(0, 0, 0, 0.24);
+}
+
+.hero-kpi span,
+.hero-kpi em {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-style: normal;
+}
+
+.hero-kpi strong {
+  display: block;
+  margin-top: 2px;
+  font-size: clamp(1.8rem, 9vw, 3.45rem);
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.hero-kpi em {
+  margin-top: 8px;
+  color: #cfeede;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.metric-grid div {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid rgba(244, 247, 239, 0.1);
+  border-radius: 8px;
+  background: rgba(244, 247, 239, 0.05);
+}
+
+.metric-grid strong {
+  display: block;
+  margin-top: 3px;
+  font-size: clamp(1rem, 5vw, 1.45rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.insight-card p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 759px) {
+  .topbar p,
+  .legend {
+    display: none;
+  }
+
+  .mode-panel {
+    top: 106px;
+  }
+
+  .search-row {
+    grid-template-columns: 1fr;
+  }
+
+  .text-button {
+    width: 100%;
+    height: 38px;
+  }
+
+  .insight-card p {
+    display: none;
+  }
+}
+
+.legend {
+  right: 18px;
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 34dvh + 12px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.legend i {
+  display: block;
+  width: 86px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #244c55, #87f2c4, #f0c86a, #ff765f);
+}
+
+::selection {
+  background: rgba(135, 242, 196, 0.32);
+  color: var(--ink);
+}
+
+@media (min-width: 760px) {
+  .topbar {
+    top: 32px;
+    left: 34px;
+    right: 34px;
+  }
+
+  .mode-panel {
+    top: auto;
+    right: 34px;
+    bottom: 34px;
+    left: auto;
+    width: min(380px, 30vw);
+  }
+
+  .insight-card {
+    right: auto;
+    bottom: 34px;
+    left: 34px;
+    width: min(390px, 32vw);
+    border-radius: 12px;
+    max-height: none;
+  }
+
+  .legend {
+    right: 34px;
+    bottom: 152px;
+  }
+
+  .topbar p {
+    font-size: 1rem;
+  }
+
+  h1 {
+    font-size: clamp(3.6rem, 6.2vw, 5rem);
+  }
+}
+
+@media (max-height: 720px) {
+  .topbar p,
+  .insight-card p {
+    display: none;
+  }
+
+  .hero-kpi {
+    padding: 12px;
+  }
+
+  .metric-grid div {
+    padding: 8px;
+  }
+}
+
+@media (max-width: 759px) {
+  .topbar p,
+  .legend {
+    display: none;
+  }
+}
+
+</style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="experience-shell">
+      <section class="stage" aria-label="Mapa interactivo 3D de Colombia">
+        <canvas id="scene"></canvas>
+        <div class="vignette" aria-hidden="true"></div>
+        <div id="labels" class="labels-layer" aria-hidden="true"></div>
+
+        <header class="topbar">
+          <div>
+            <h1>Colombia<br />KPI 3D</h1>
+            <p>Toca un departamento y mira cómo se desacopla con su indicador principal.</p>
+          </div>
+          <button id="resetView" class="icon-button" type="button" aria-label="Volver a vista nacional" title="Volver a vista nacional">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/></svg>
+          </button>
+        </header>
+
+        <aside class="mode-panel" aria-label="Controles de visualización">
+          <div class="segmented" role="tablist" aria-label="KPI activo">
+            <button class="active" type="button" data-metric="growth">Crecimiento</button>
+            <button type="button" data-metric="coverage">Cobertura</button>
+            <button type="button" data-metric="risk">Riesgo</button>
+          </div>
+          <div class="search-row">
+            <label class="search-box">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35"/><circle cx="11" cy="11" r="7"/></svg>
+              <input id="departmentSearch" type="search" list="departmentOptions" placeholder="Buscar departamento" autocomplete="off" />
+              <datalist id="departmentOptions"></datalist>
+            </label>
+            <button id="selectAll" class="text-button" type="button">Todos</button>
+          </div>
+        </aside>
+
+        <section class="insight-card" aria-live="polite">
+          <div class="selected-meta">
+            <span id="selectedRegion">Vista nacional</span>
+            <strong id="selectedName">Toca un departamento</strong>
+          </div>
+          <div class="hero-kpi">
+            <span id="activeMetricLabel">Crecimiento</span>
+            <strong id="featuredValue">+18%</strong>
+            <em>Indicador desacoplado</em>
+          </div>
+          <div class="metric-grid">
+            <div>
+              <span>Crecimiento</span>
+              <strong id="growthValue">+18%</strong>
+            </div>
+            <div>
+              <span>Cobertura</span>
+              <strong id="coverageValue">72%</strong>
+            </div>
+            <div>
+              <span>Riesgo</span>
+              <strong id="riskValue">31</strong>
+            </div>
+          </div>
+          <p id="departmentNarrative">El mapa eleva cada territorio según el KPI elegido. Los valores son demostrativos y están listos para conectarse a datos reales.</p>
+        </section>
+
+        <div class="legend" aria-label="Leyenda del mapa">
+          <span>Bajo</span>
+          <i></i>
+          <span>Alto</span>
+        </div>
+      </section>
+    </main>
+    <script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const canvas = document.querySelector("#scene");
+const labelsLayer = document.querySelector("#labels");
+const selectedRegion = document.querySelector("#selectedRegion");
+const selectedName = document.querySelector("#selectedName");
+const growthValue = document.querySelector("#growthValue");
+const coverageValue = document.querySelector("#coverageValue");
+const riskValue = document.querySelector("#riskValue");
+const featuredValue = document.querySelector("#featuredValue");
+const activeMetricLabel = document.querySelector("#activeMetricLabel");
+const narrative = document.querySelector("#departmentNarrative");
+const searchInput = document.querySelector("#departmentSearch");
+const departmentOptions = document.querySelector("#departmentOptions");
+const selectAllButton = document.querySelector("#selectAll");
+const metricButtons = [...document.querySelectorAll("[data-metric]")];
+
+let activeMetric = "growth";
+let selected = null;
+const departments = [];
+const labels = [];
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x07100f, 0.014);
+
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 1000);
+camera.position.set(0, -8, 46);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.enablePan = false;
+controls.enableRotate = false;
+controls.enableZoom = false;
+controls.minDistance = 16;
+controls.maxDistance = 72;
+controls.maxPolarAngle = Math.PI * 0.82;
+controls.target.set(0, 0, 0);
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const mapRoot = new THREE.Group();
+scene.add(mapRoot);
+
+const ambient = new THREE.HemisphereLight(0xd9fff1, 0x07100f, 1.7);
+scene.add(ambient);
+
+const key = new THREE.DirectionalLight(0xffffff, 3.3);
+key.position.set(-16, -20, 38);
+scene.add(key);
+
+const rim = new THREE.DirectionalLight(0x6ee7ff, 1.7);
+rim.position.set(24, 12, 24);
+scene.add(rim);
+
+const base = new THREE.Mesh(
+  new THREE.CircleGeometry(19, 96),
+  new THREE.MeshStandardMaterial({
+    color: 0x0a1716,
+    metalness: 0.25,
+    roughness: 0.78,
+    transparent: true,
+    opacity: 0.62
+  })
+);
+base.rotation.x = -Math.PI / 2;
+base.position.z = -0.24;
+scene.add(base);
+
+const metricPalettes = {
+  growth: [new THREE.Color("#24413b"), new THREE.Color("#53d39d"), new THREE.Color("#d9b95f")],
+  coverage: [new THREE.Color("#263c52"), new THREE.Color("#6aa8e8"), new THREE.Color("#86d78c")],
+  risk: [new THREE.Color("#263c52"), new THREE.Color("#d9b95f"), new THREE.Color("#e76858")]
+};
+
+function normalizeName(name) {
+  return name
+    .toLocaleLowerCase("es")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function titleCase(name) {
+  return name
+    .toLocaleLowerCase("es")
+    .split(" ")
+    .map((part) => part.charAt(0).toLocaleUpperCase("es") + part.slice(1))
+    .join(" ");
+}
+
+function syntheticKpis(name, area) {
+  const seed = [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0) + Math.round(area / 1000);
+  return {
+    growth: 8 + (seed % 28),
+    coverage: 46 + (seed % 47),
+    risk: 18 + (seed % 64),
+    investment: 120 + ((seed * 17) % 880)
+  };
+}
+
+function project([lon, lat], bounds) {
+  const x = (lon * Math.PI) / 180;
+  const y = Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+  return [x, y, bounds];
+}
+
+function simplifyRing(ring) {
+  if (ring.length < 340) return ring;
+  const step = Math.ceil(ring.length / 340);
+  const simplified = ring.filter((_, index) => index % step === 0);
+  if (simplified[0] !== simplified[simplified.length - 1]) simplified.push(simplified[0]);
+  return simplified;
+}
+
+function getBounds(features) {
+  const bounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+  features.forEach((feature) => {
+    eachRing(feature.geometry, (ring) => {
+      ring.forEach((coord) => {
+        const [x, y] = project(coord, bounds);
+        bounds.minX = Math.min(bounds.minX, x);
+        bounds.maxX = Math.max(bounds.maxX, x);
+        bounds.minY = Math.min(bounds.minY, y);
+        bounds.maxY = Math.max(bounds.maxY, y);
+      });
+    });
+  });
+  return bounds;
+}
+
+function toWorld(coord, bounds) {
+  const [x, y] = project(coord, bounds);
+  const width = bounds.maxX - bounds.minX;
+  const height = bounds.maxY - bounds.minY;
+  const scale = 34 / Math.max(width, height);
+  return new THREE.Vector2((x - (bounds.minX + width / 2)) * scale, (y - (bounds.minY + height / 2)) * scale);
+}
+
+function eachRing(geometry, callback) {
+  if (geometry.type === "Polygon") {
+    geometry.coordinates.forEach(callback);
+  }
+  if (geometry.type === "MultiPolygon") {
+    geometry.coordinates.forEach((polygon) => polygon.forEach(callback));
+  }
+}
+
+function makeShapes(geometry, bounds) {
+  const polygons = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
+  return polygons.map((polygon) => {
+    const outer = simplifyRing(polygon[0]).map((coord) => toWorld(coord, bounds));
+    const shape = new THREE.Shape(outer);
+    polygon.slice(1).forEach((hole) => {
+      const holePath = new THREE.Path(simplifyRing(hole).map((coord) => toWorld(coord, bounds)));
+      shape.holes.push(holePath);
+    });
+    return { shape, rings: polygon.map((ring) => simplifyRing(ring).map((coord) => toWorld(coord, bounds))) };
+  });
+}
+
+function colorFor(value, metric) {
+  const [low, mid, high] = metricPalettes[metric];
+  const t = metric === "risk" ? value / 82 : metric === "coverage" ? (value - 46) / 47 : (value - 8) / 28;
+  if (t < 0.5) return low.clone().lerp(mid, t * 2);
+  return mid.clone().lerp(high, (t - 0.5) * 2);
+}
+
+function centroidFromGeometry(geometry, bounds) {
+  const points = [];
+  eachRing(geometry, (ring) => ring.slice(0, 80).forEach((coord) => points.push(toWorld(coord, bounds))));
+  const center = points.reduce((acc, p) => acc.add(p), new THREE.Vector2()).divideScalar(points.length || 1);
+  return new THREE.Vector3(center.x, center.y, 0.72);
+}
+
+function setDepartmentColor(item) {
+  const color = colorFor(item.kpis[activeMetric], activeMetric);
+  item.meshes.forEach((mesh) => {
+    mesh.material.color.copy(color);
+    mesh.material.emissive.copy(color).multiplyScalar(item === selected ? 0.5 : 0.06);
+    mesh.material.roughness = item === selected ? 0.32 : 0.52;
+  });
+}
+
+function averageMetric(metric) {
+  const total = departments.reduce((sum, item) => sum + item.kpis[metric], 0);
+  return Math.round(total / Math.max(departments.length, 1));
+}
+
+function buildMap(geojson) {
+  const bounds = getBounds(geojson.features);
+  geojson.features.forEach((feature) => {
+    const name = titleCase(feature.properties.dpto_nombre);
+    const kpis = syntheticKpis(name, feature.properties.area_km2);
+    const group = new THREE.Group();
+    group.userData.name = name;
+    group.userData.search = normalizeName(name);
+    group.userData.kpis = kpis;
+    const item = { name, kpis, group, meshes: [], center: centroidFromGeometry(feature.geometry, bounds) };
+
+    makeShapes(feature.geometry, bounds).forEach(({ shape, rings }) => {
+      const geometry = new THREE.ExtrudeGeometry(shape, {
+        depth: 0.55,
+        bevelEnabled: true,
+        bevelThickness: 0.035,
+        bevelSize: 0.035,
+        bevelSegments: 2
+      });
+      const material = new THREE.MeshStandardMaterial({
+        color: colorFor(kpis[activeMetric], activeMetric),
+        metalness: 0.18,
+        roughness: 0.48,
+        emissive: 0x07100f,
+        emissiveIntensity: 0.9
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.userData.department = item;
+      item.meshes.push(mesh);
+      group.add(mesh);
+
+      rings.forEach((ring) => {
+        const linePoints = ring.map((p) => new THREE.Vector3(p.x, p.y, 0.62));
+        const line = new THREE.LineLoop(
+          new THREE.BufferGeometry().setFromPoints(linePoints),
+          new THREE.LineBasicMaterial({ color: 0xe4edde, transparent: true, opacity: 0.82 })
+        );
+        group.add(line);
+      });
+    });
+
+    const pinHeight = 2.8;
+    const pinStem = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.025, 0.025, pinHeight, 12),
+      new THREE.MeshStandardMaterial({
+        color: 0xdce8d6,
+        emissive: 0x87f2c4,
+        emissiveIntensity: 0.55,
+        metalness: 0.08,
+        roughness: 0.28,
+        transparent: true,
+        opacity: 0
+      })
+    );
+    pinStem.rotation.x = Math.PI / 2;
+    pinStem.position.copy(item.center).add(new THREE.Vector3(0, 0, pinHeight / 2 + 0.52));
+    const pinDot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.18, 24, 16),
+      new THREE.MeshStandardMaterial({
+        color: 0x87f2c4,
+        emissive: 0x87f2c4,
+        emissiveIntensity: 1.1,
+        metalness: 0.12,
+        roughness: 0.22,
+        transparent: true,
+        opacity: 0
+      })
+    );
+    pinDot.position.copy(item.center).add(new THREE.Vector3(0, 0, pinHeight + 0.58));
+    item.pinStem = pinStem;
+    item.pinDot = pinDot;
+    group.add(pinStem, pinDot);
+
+    const label = document.createElement("div");
+    label.className = "kpi-label";
+    label.innerHTML = `<span>${name}</span><strong>+${kpis.growth}%</strong>`;
+    labelsLayer.append(label);
+    item.label = label;
+    labels.push(item);
+
+    departments.push(item);
+    mapRoot.add(group);
+  });
+
+  departments
+    .sort((a, b) => a.name.localeCompare(b.name, "es"))
+    .forEach((item) => {
+      const option = document.createElement("option");
+      option.value = item.name;
+      departmentOptions.append(option);
+    });
+
+  updateMetric("growth");
+  selectAll(false);
+}
+
+function updateMetric(metric) {
+  activeMetric = metric;
+  metricButtons.forEach((button) => button.classList.toggle("active", button.dataset.metric === metric));
+  departments.forEach((item) => {
+    setDepartmentColor(item);
+    const value = item.kpis[metric];
+    const pinColor = colorFor(item.kpis[metric], metric);
+    item.pinDot.material.color.copy(pinColor);
+    item.pinDot.material.emissive.copy(pinColor);
+    item.label.innerHTML = `<span>${item.name}</span><strong>${metric === "growth" ? "+" : ""}${value}${metric === "risk" ? "" : "%"}</strong>`;
+  });
+  if (selected) renderSelected(selected);
+  else renderAll();
+}
+
+function selectDepartment(item, travel = true) {
+  selected = item;
+  departments.forEach((department) => {
+    department.group.userData.targetZ = department === item ? 1.55 : 0;
+    department.group.userData.targetScale = department === item ? 1.055 : 1;
+    department.pinStem.userData.targetOpacity = department === item ? 0.9 : 0;
+    department.pinDot.userData.targetOpacity = department === item ? 1 : 0;
+    setDepartmentColor(department);
+  });
+  renderSelected(item);
+  if (travel) {
+    targetCamera.position.set(0, -8, window.innerWidth < 760 ? 58 : 48);
+    targetCamera.target.set(0, 0, 0);
+  }
+}
+
+function selectAll(travel = true) {
+  selected = null;
+  departments.forEach((department) => {
+    department.group.userData.targetZ = 0;
+    department.group.userData.targetScale = 1;
+    department.pinStem.userData.targetOpacity = 0;
+    department.pinDot.userData.targetOpacity = 0;
+    setDepartmentColor(department);
+  });
+  searchInput.value = "";
+  renderAll();
+  if (travel) {
+    targetCamera.position.set(0, -8, window.innerWidth < 760 ? 58 : 48);
+    targetCamera.target.set(0, 0, 0);
+  }
+}
+
+function renderSelected(item) {
+  const value = item.kpis[activeMetric];
+  const suffix = activeMetric === "risk" ? "" : "%";
+  const prefix = activeMetric === "growth" ? "+" : "";
+  selectedRegion.textContent = "Departamento seleccionado";
+  selectedName.textContent = item.name;
+  growthValue.textContent = `+${item.kpis.growth}%`;
+  coverageValue.textContent = `${item.kpis.coverage}%`;
+  riskValue.textContent = `${item.kpis.risk}`;
+  const metricLabel = activeMetric === "growth" ? "crecimiento" : activeMetric === "coverage" ? "cobertura" : "riesgo";
+  activeMetricLabel.textContent = metricLabel.charAt(0).toLocaleUpperCase("es") + metricLabel.slice(1);
+  featuredValue.textContent = `${prefix}${value}${suffix}`;
+  narrative.textContent = `${item.name} se ilumina y se desacopla del mapa. La tarjeta mantiene el KPI principal limpio, con inversión demo de ${item.kpis.investment} mil millones COP.`;
+}
+
+function renderAll() {
+  const value = averageMetric(activeMetric);
+  const suffix = activeMetric === "risk" ? "" : "%";
+  const prefix = activeMetric === "growth" ? "+" : "";
+  const metricLabel = activeMetric === "growth" ? "crecimiento" : activeMetric === "coverage" ? "cobertura" : "riesgo";
+  selectedRegion.textContent = "Vista general";
+  selectedName.textContent = "Todos los departamentos";
+  growthValue.textContent = `+${averageMetric("growth")}%`;
+  coverageValue.textContent = `${averageMetric("coverage")}%`;
+  riskValue.textContent = `${averageMetric("risk")}`;
+  activeMetricLabel.textContent = `${metricLabel.charAt(0).toLocaleUpperCase("es")}${metricLabel.slice(1)} promedio`;
+  featuredValue.textContent = `${prefix}${value}${suffix}`;
+  narrative.textContent = "La colorimetría muestra todos los departamentos según el KPI activo. Toca un territorio o elígelo en la búsqueda para ver su detalle.";
+}
+
+const targetCamera = {
+  position: camera.position.clone(),
+  target: controls.target.clone()
+};
+
+function resetView() {
+  selectAll();
+}
+
+function onPointerDown(event) {
+  const rect = canvas.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(departments.flatMap((item) => item.meshes), false);
+  if (hits[0]?.object.userData.department) {
+    selectDepartment(hits[0].object.userData.department);
+    return;
+  }
+  const nearest = findNearestDepartment(event.clientX, event.clientY, true);
+  if (nearest) {
+    selectDepartment(nearest);
+  }
+}
+
+function findNearestDepartment(clientX, clientY, generous = false) {
+  let winner = null;
+  let winnerDistance = Infinity;
+  departments.forEach((item) => {
+    const projected = item.center.clone().applyMatrix4(item.group.matrixWorld).project(camera);
+    const x = (projected.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-projected.y * 0.5 + 0.5) * window.innerHeight;
+    const distance = Math.hypot(clientX - x, clientY - y);
+    if (distance < winnerDistance) {
+      winner = item;
+      winnerDistance = distance;
+    }
+  });
+  const limit = generous ? (window.innerWidth < 760 ? 150 : 95) : (window.innerWidth < 760 ? 92 : 62);
+  return winnerDistance < limit ? winner : null;
+}
+
+function updateLabels() {
+  labels.forEach((item) => {
+    const position = item.center.clone().add(new THREE.Vector3(0, 0, item === selected ? 5.6 : 4.5));
+    position.applyMatrix4(item.group.matrixWorld);
+    position.project(camera);
+    const x = (position.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-position.y * 0.5 + 0.5) * window.innerHeight;
+    const visible = item === selected;
+    const panelGuard = window.innerWidth < 760 && y > window.innerHeight - 290;
+    item.label.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
+    item.label.style.opacity = visible && position.z < 1 && !panelGuard ? "1" : "0";
+  });
+}
+
+function resize() {
+  const { innerWidth, innerHeight } = window;
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  mapRoot.position.x = innerWidth >= 760 ? 7.2 : 0.2;
+  mapRoot.position.y = innerWidth >= 760 ? -0.3 : -1.1;
+  mapRoot.scale.setScalar(innerWidth >= 760 ? 0.72 : 0.48);
+  if (!selected) resetView();
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  departments.forEach((item) => {
+    const targetZ = item.group.userData.targetZ || 0;
+    const targetScale = item.group.userData.targetScale || 1;
+    item.group.position.z += (targetZ - item.group.position.z) * 0.08;
+    item.group.scale.x += (targetScale - item.group.scale.x) * 0.08;
+    item.group.scale.y += (targetScale - item.group.scale.y) * 0.08;
+    item.pinStem.material.opacity += (((item.pinStem.userData.targetOpacity ?? 0) - item.pinStem.material.opacity) * 0.1);
+    item.pinDot.material.opacity += (((item.pinDot.userData.targetOpacity ?? 0) - item.pinDot.material.opacity) * 0.1);
+    const pinPulse = item === selected ? 1 + Math.sin(performance.now() * 0.004) * 0.08 : 1;
+    item.pinDot.scale.setScalar(pinPulse);
+  });
+  camera.position.lerp(targetCamera.position, 0.035);
+  controls.target.lerp(targetCamera.target, 0.045);
+  controls.update();
+  updateLabels();
+  renderer.render(scene, camera);
+}
+
+metricButtons.forEach((button) => {
+  button.addEventListener("click", () => updateMetric(button.dataset.metric));
+});
+
+document.querySelector("#resetView").addEventListener("click", resetView);
+selectAllButton.addEventListener("click", () => selectAll());
+canvas.addEventListener("pointerdown", onPointerDown);
+
+searchInput.addEventListener("input", () => {
+  const query = normalizeName(searchInput.value.trim());
+  if (!query) {
+    selectAll(false);
+    return;
+  }
+  if (query.length < 2) return;
+  const match =
+    departments.find((item) => item.group.userData.search === query) ||
+    departments.find((item) => item.group.userData.search.includes(query));
+  if (match) selectDepartment(match);
+});
+
+window.addEventListener("resize", resize);
+resize();
+
+fetch("./col_departamentos.geojson")
+  .then((response) => response.json())
+  .then(buildMap)
+  .then(animate)
+  .catch(() => {
+    selectedName.textContent = "No se pudo cargar el mapa";
+    narrative.textContent = "Abre esta carpeta con un servidor local para permitir que el navegador lea el GeoJSON.";
+  });
+
+</script>
+  </body>
+</html>
+
